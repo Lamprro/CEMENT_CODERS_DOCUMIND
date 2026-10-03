@@ -85,10 +85,10 @@
   place-items: center;
   flex: 0 0 auto;
   min-width: 30px;
-  padding: 0 4px;
+  padding: 0 6px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-  width: 30px;
+  width: auto;
   height: 30px;
   border-radius: 9px;
   border: 1px solid #e4e2ee;
@@ -783,3 +783,26 @@
 .detail-section, .detail-toolbar, .detail-body { min-width: 0; max-width: 100%; }
 .detail-title > div, .detail-toolbar-row > span { min-width: 0; overflow-wrap: anywhere; }
 .source-reading-view { grid-template-columns: minmax(0, 1fr); }
+
+.nav-count,
+.panel-index,
+.outline-number,
+.takeaway-list > div > span,
+.summary-section > span,
+.conclusion-highlight > span,
+.quiz-progress-head strong,
+.quiz-score-ring strong {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.metric-card strong:not(.metric-word),
+.review-stats strong {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.review-stats > div {
+  min-width: 0;
+}
