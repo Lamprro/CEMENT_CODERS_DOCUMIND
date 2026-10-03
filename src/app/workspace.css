@@ -1,5 +1,4 @@
-/* Result workspace components (quiz, chat, detail search, processing, history).
-   Loaded after globals.css; reuses its palette variables. */
+
 
 .chip {
   display: inline-flex;
@@ -32,7 +31,7 @@
   color: var(--purple);
 }
 
-/* Readable floor for long-form reading areas */
+
 .block-type {
   font-size: 13px;
   text-transform: uppercase;
@@ -48,7 +47,7 @@
   font-size: 13px;
 }
 
-/* Quiz */
+
 .quiz-progress {
   margin: 16px 0 4px;
 }
@@ -237,7 +236,7 @@
   gap: 6px;
 }
 
-/* Chat */
+
 .chat-message {
   font-size: 13px;
 }
@@ -344,7 +343,7 @@
   font-size: 13px;
 }
 
-/* Detail search, table of contents and collapsible sections */
+
 .detail-toolbar {
   padding: 14px 16px;
   display: grid;
@@ -476,7 +475,7 @@
   padding-top: 6px;
 }
 
-/* Processing */
+
 .processing-progress.is-determinate i {
   animation: none;
   transition: width 0.5s ease;
@@ -529,7 +528,7 @@
   animation: pulse 1.4s infinite;
 }
 
-/* History */
+
 .history-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -592,7 +591,7 @@
   }
 }
 
-/* Result and source text blocks */
+
 .content-block .block-content,
 .block-content {
   font-size: 14px;
@@ -633,7 +632,7 @@
   padding: 9px 11px;
 }
 
-/* Source comparison remains readable on desktop and stacks on small screens. */
+
 .source-comparison {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -729,7 +728,7 @@
 .activity-panel small { display:block; color:#656575; }
 .activity-panel em { font-style:normal; font-size:13px; }
 
-/* Let flex/grid children shrink; prose wraps while code and tables scroll locally. */
+
 .rich-text, .block-content, .content-block, .result-column, .result-article,
 .article-section > div, .takeaway-list > div > div, .summary-section > div,
 .conclusion-highlight > div, .chat-message, .source-reading-view,
@@ -767,7 +766,7 @@
 }
 .validation-message, .validation-message > span { min-width: 0; overflow-wrap: anywhere; }
 .code-view { max-width: 100%; min-width: 0; overflow-x: auto; white-space: pre; }
-/* A grid item's automatic minimum otherwise expands to a pre/table's intrinsic width. */
+
 .detail-sections { min-width: 0; max-width: 100%; grid-template-columns: minmax(0, 1fr); }
 .detail-section, .detail-toolbar, .detail-body { min-width: 0; max-width: 100%; }
 .detail-title > div, .detail-toolbar-row > span { min-width: 0; overflow-wrap: anywhere; }

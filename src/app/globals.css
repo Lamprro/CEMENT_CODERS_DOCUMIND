@@ -2686,7 +2686,7 @@ textarea:focus-visible {
   }
 }
 
-/* Input and visual-content states used throughout the input → review flow. */
+
 .dropzone.is-dragging {
   border-color: #765ce5;
   background: #f5f2ff;
@@ -2884,7 +2884,7 @@ textarea:focus-visible {
   }
 }
 
-/* Account controls and production-sized typography. */
+
 .page-content {
   width: 100%;
   max-width: 1500px;
@@ -3409,7 +3409,7 @@ body.dialog-open {
   }
 }
 
-/* Keep dense result and form content readable at normal browser zoom. */
+
 .page-content :is(p, li, dd) {
   font-size: 13px;
   line-height: 1.65;
@@ -3571,7 +3571,7 @@ body.dialog-open {
   }
 }
 
-/* Review separates a compact source preview from the full editor. */
+
 .step-line {
   position: static;
   flex: 1;
@@ -3752,7 +3752,7 @@ body.dialog-open {
   margin: 3px 0 9px;
 }
 
-/* Product(V2) export: scan-friendly format choices and a bounded preview. */
+
 @media (min-width: 1020px) {
   .report-format-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3803,7 +3803,7 @@ body.dialog-open {
   font-size: 13px;
 }
 
-/* Long-result reading surfaces: concise overview, progressive detail. */
+
 .overview-lead {
   max-width: 80ch;
   line-height: 1.7;
@@ -3892,7 +3892,7 @@ body.dialog-open {
   margin-bottom: 8px;
 }
 
-/* Read the prepared source before opening its editor. */
+
 .source-mode-switch {
   display: flex;
   gap: 10px;
