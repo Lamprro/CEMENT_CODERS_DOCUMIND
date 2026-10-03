@@ -5,7 +5,7 @@ import { ApiError } from "@/lib/http";
 import { renderVisual, visualKind, visualSource, type VisualImage } from "@/lib/visual-renderer";
 import type { ReportDocument } from "@/lib/report";
 import type { ResultBlock } from "@/lib/result-content";
-export async function ensureVisualAsset(analysisId: string, resultId: string, block: ResultBlock, svg?: string) {
+export async function ensureVisualAsset(analysisId: string, resultId: string, block: ResultBlock, svg?: string, storedOnly = false) {
     const db = getAdminDb();
     const kind = visualKind(block);
     const source = visualSource(block);
@@ -23,6 +23,8 @@ export async function ensureVisualAsset(analysisId: string, resultId: string, bl
                 return { ...previous, image: { bytes, width: dimensions.width, height: dimensions.height } as VisualImage };
         }
     }
+    if (storedOnly)
+        throw new ApiError(409, "VISUAL_ASSET_NOT_READY", "Ảnh chưa sẵn sàng. Mở lại kết quả và xử lý ảnh trước khi xuất báo cáo.");
     let image: VisualImage;
     try {
         try {
@@ -51,7 +53,7 @@ export async function ensureVisualAsset(analysisId: string, resultId: string, bl
         throw new ApiError(503, "ASSET_METADATA_UNAVAILABLE", "Ảnh đã tải lên nhưng chưa lưu được đường dẫn. Hãy thử lại.");
     return { ...asset, image };
 }
-export async function prepareReportImages(analysisId: string, resultId: string, report: ReportDocument, strict = true) {
+export async function prepareReportImages(analysisId: string, resultId: string, report: ReportDocument, strict = true, storedOnly = false) {
     const images = new Map<string, VisualImage>();
     const failures: string[] = [];
     const seen = new Set<string>();
@@ -70,7 +72,7 @@ export async function prepareReportImages(analysisId: string, resultId: string, 
         const outcomes = await Promise.allSettled(blocks.slice(offset, offset + 3).map(async (block) => {
             const key = `${visualKind(block)}:${visualSource(block)}`;
             try {
-                const asset = await ensureVisualAsset(analysisId, resultId, block);
+                const asset = await ensureVisualAsset(analysisId, resultId, block, undefined, storedOnly);
                 images.set(key, asset.image);
             }
             catch (error) {
@@ -84,6 +86,10 @@ export async function prepareReportImages(analysisId: string, resultId: string, 
             throw rejected.reason;
     }
     return { images, failures };
+}
+export async function loadReportImages(analysisId: string, resultId: string, report: ReportDocument) {
+    const { images } = await prepareReportImages(analysisId, resultId, report, true, true);
+    return images;
 }
 export async function attachVisualLinks(analysisId: string, resultId: string, report: ReportDocument): Promise<ReportDocument> {
     const db = getAdminDb();

@@ -1,7 +1,7 @@
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
-import { prepareReportImages, attachVisualLinks } from "@/lib/visual-assets";
+import { loadReportImages } from "@/lib/visual-assets";
 import { z } from "zod";
 import { getAnalysis, getIdentity } from "@/lib/auth";
 import { getAdminDb } from "@/lib/db";
@@ -25,10 +25,9 @@ export async function POST(request: NextRequest, context: Context) {
     const { data: result, error } = await db.from("analysis_results").select("id,result_json").eq("analysis_id", id).eq("is_current", true).maybeSingle();
     if (error || !result) throw new ApiError(404, "RESULT_NOT_FOUND", "Không có kết quả để xuất.");
     const sourceDocument = result.result_json as ReportDocument;
-    const { images } = await prepareReportImages(id, result.id, sourceDocument);
     const document = format === "json"
-      ? await attachVisualLinks(id, result.id, sourceDocument)
-      : { ...sourceDocument, images };
+      ? sourceDocument
+      : { ...sourceDocument, images: await loadReportImages(id, result.id, sourceDocument) };
     const extensions = { markdown: "zip", docx: "docx", pdf: "pdf", html: "html", json: "json" } as const;
     const contentTypes = {
       markdown: "application/zip",

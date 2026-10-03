@@ -81,6 +81,13 @@
   margin: 14px 0 6px;
 }
 .quiz-dot {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  min-width: 30px;
+  padding: 0 4px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
   width: 30px;
   height: 30px;
   border-radius: 9px;
@@ -119,7 +126,12 @@
   font-size: 15px;
   line-height: 1.55;
 }
+.quiz-q-meta {
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
 .quiz-q-meta span {
+  white-space: nowrap;
   font-size: 13px;
 }
 .quiz-options label {

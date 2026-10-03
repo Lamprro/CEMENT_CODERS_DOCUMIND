@@ -3,8 +3,6 @@ import path from "node:path";
 import { visualKind, visualSource, type VisualImage } from "@/lib/visual-renderer";
 import PDFDocument from "pdfkit";
 import { Document, HeadingLevel, ImageRun, Packer, Paragraph, Table, TableRow, TableCell, WidthType, } from "docx";
-import katex from "katex";
-import { renderFormulaPng } from "@/lib/formula";
 import { isListBlock, blockToPlainText, listItemText, tableValues, type ResultBlock, } from "@/lib/result-content";
 export type ReportSection = {
     title: string;
@@ -58,7 +56,7 @@ function embeddedVisualPng(block: ResultBlock, images?: Map<string, VisualImage>
     const image = images?.get(`${visualKind(block)}:${visualSource(block)}`);
     if (image)
         return image;
-    if (!isVisual(block))
+    if (!isVisual(block) && !visualKind(block))
         return null;
     const encoded = typeof block.metadata?.inlinePngBase64 === "string"
         ? block.metadata.inlinePngBase64
@@ -81,6 +79,12 @@ function embeddedVisualPng(block: ResultBlock, images?: Map<string, VisualImage>
         height > 10000)
         return null;
     return { bytes, width, height };
+}
+function assertReportImages(report: ReportDocument) {
+    for (const section of report.sections ?? [])
+        for (const block of section.blocks ?? [])
+            if (visualKind(block) && !embeddedVisualPng(block, report.images))
+                throw new Error("Ảnh công thức hoặc sơ đồ chưa sẵn sàng để xuất báo cáo.");
 }
 function scaleDiagram(width: number, height: number, maxWidth: number, maxHeight: number) {
     const scale = Math.min(maxWidth / width, maxHeight / height, 1);
@@ -106,11 +110,8 @@ function markdownBlock(block: ResultBlock) {
             .join("\n");
     if (isCode(block))
         return `\n\`\`\`\n${text}\n\`\`\``;
-    if (block.contentType === "mermaid" || block.type === "mermaid")
-        return `\n\`\`\`mermaid\n${text}\n\`\`\``;
-    if (block.contentType === "latex" ||
-        ["formula", "math", "equation"].includes(block.type))
-        return `\n$$\n${text}\n$$`;
+    if (visualKind(block))
+        throw new Error("Ảnh công thức hoặc sơ đồ chưa sẵn sàng để xuất Markdown.");
     return text;
 }
 export function reportToMarkdown(report: ReportDocument) {
@@ -132,6 +133,7 @@ export function reportToMarkdown(report: ReportDocument) {
     return lines.join("\n").trim() + "\n";
 }
 export async function reportToMarkdownZip(report: ReportDocument) {
+    assertReportImages(report);
     const zip = new JSZip();
     const names = new Map<string, string>();
     for (const [key, image] of report.images ?? []) {
@@ -158,17 +160,6 @@ function htmlBlock(block: ResultBlock, images?: Map<string, VisualImage>) {
         const caption = typeof block.metadata?.caption === "string" ? block.metadata.caption : isFormula(block) ? "Công thức" : block.type === "image" ? "Hình ảnh" : "Sơ đồ";
         return `<figure class="${isFormula(block) ? "formula-export" : "diagram-export"}"><figcaption>${escapeHtml(caption)}</figcaption><img alt="${escapeHtml(String(block.metadata?.alt ?? caption))}" src="data:image/png;base64,${visual.bytes.toString("base64")}"></figure>`;
     }
-    if (block.contentType === "latex" ||
-        ["formula", "math", "equation"].includes(block.type)) {
-        const math = typeof block.metadata?.latex === "string" ? block.metadata.latex : text;
-        const normalized = math.trim().replace(/^\$\$?|\$\$?$/g, "");
-        try {
-            return `<figure class="formula-export"><figcaption>CÔNG THỨC</figcaption>${katex.renderToString(normalized, { output: "mathml", displayMode: true, throwOnError: true, trust: false })}</figure>`;
-        }
-        catch {
-            return `<div class="block"><span class="label">CÔNG THỨC · LaTeX</span><pre class="source">${escapeHtml(math)}</pre></div>`;
-        }
-    }
     const label = blockLabel(block);
     const className = isCode(block) ||
         block.contentType === "json" ||
@@ -179,15 +170,17 @@ function htmlBlock(block: ResultBlock, images?: Map<string, VisualImage>) {
     return `<div class="block"><span class="label">${escapeHtml(label)}</span><pre class="${className}">${escapeHtml(text)}</pre></div>`;
 }
 export function reportToHtml(report: ReportDocument) {
+    assertReportImages(report);
     const conclusion = report.conclusion
         ? `<section class="report-conclusion"><h2>Kết luận</h2><p>${escapeHtml(report.conclusion)}</p></section>`
         : "";
     const sections = (report.sections ?? [])
         .map((section) => `<section><h2>${escapeHtml(section.title)}</h2>${section.summary ? `<p class="section-summary">${escapeHtml(section.summary)}</p>` : ""}${(section.blocks ?? []).map(block => htmlBlock(block, report.images)).join("")}</section>`)
         .join("");
-    return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${escapeHtml(report.title || "Báo cáo học tập")}</title><style>body{font:16px/1.65 Arial,sans-serif;color:#202235;max-width:920px;margin:48px auto;padding:0 24px}header{border-bottom:1px solid #e4e5ed;padding-bottom:24px;margin-bottom:28px}h1{font-size:32px;margin:0 0 10px}h2{font-size:22px;margin:0 0 12px}section{margin:30px 0}.section-summary{color:#62667b}.report-conclusion{padding:18px;border-left:3px solid #7965dc;background:#f8f7ff;border-radius:0 10px 10px 0}.block{margin:14px 0}.label{display:block;text-transform:uppercase;letter-spacing:.08em;font-size:11px;color:#7060c7;font-weight:700;margin-bottom:7px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f6f7fb;border-radius:8px;padding:14px;font:14px/1.65 ui-monospace,monospace}.content{background:transparent;padding:0;font:inherit}ul{padding-left:24px}.diagram-export,.formula-export{margin:18px 0;padding:16px;border:1px solid #e7e5ef;border-radius:10px;break-inside:avoid}.diagram-export img{display:block;width:100%;height:auto;max-height:720px;object-fit:contain}.diagram-export figcaption,.formula-export figcaption{font-size:11px;color:#7060c7;font-weight:700;margin-bottom:12px}.formula-export img{max-width:100%;max-height:100px;width:auto;height:auto}.formula-export math{display:block;font-size:1.35em}.diagram-export details{margin-top:12px;font-size:12px}@media print{body{margin:0 auto;padding:0 8mm}section{break-inside:avoid}}</style></head><body><header><h1>${escapeHtml(report.title || "Báo cáo học tập")}</h1>${report.summary ? `<p>${escapeHtml(report.summary)}</p>` : ""}</header>${sections}${conclusion}</body></html>`;
+    return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${escapeHtml(report.title || "Báo cáo học tập")}</title><style>body{font:16px/1.65 Arial,sans-serif;color:#202235;max-width:920px;margin:48px auto;padding:0 24px}header{border-bottom:1px solid #e4e5ed;padding-bottom:24px;margin-bottom:28px}h1{font-size:32px;margin:0 0 10px}h2{font-size:22px;margin:0 0 12px}section{margin:30px 0}.section-summary{color:#62667b}.report-conclusion{padding:18px;border-left:3px solid #7965dc;background:#f8f7ff;border-radius:0 10px 10px 0}.block{margin:14px 0}.label{display:block;text-transform:uppercase;letter-spacing:.08em;font-size:11px;color:#7060c7;font-weight:700;margin-bottom:7px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f6f7fb;border-radius:8px;padding:14px;font:14px/1.65 ui-monospace,monospace}.content{background:transparent;padding:0;font:inherit}ul{padding-left:24px}.diagram-export,.formula-export{margin:18px 0;padding:16px;border:1px solid #e7e5ef;border-radius:10px;break-inside:avoid}.diagram-export img{display:block;width:100%;height:auto;max-height:720px;object-fit:contain}.diagram-export figcaption,.formula-export figcaption{font-size:11px;color:#7060c7;font-weight:700;margin-bottom:12px}.formula-export img{max-width:100%;width:auto;height:auto}.diagram-export details{margin-top:12px;font-size:12px}@media print{body{margin:0 auto;padding:0 8mm}section{break-inside:avoid}}</style></head><body><header><h1>${escapeHtml(report.title || "Báo cáo học tập")}</h1>${report.summary ? `<p>${escapeHtml(report.summary)}</p>` : ""}</header>${sections}${conclusion}</body></html>`;
 }
 export async function reportToPdf(report: ReportDocument): Promise<Buffer> {
+    assertReportImages(report);
     const chunks: Buffer[] = [];
     const document = new PDFDocument({
         size: "A4",
@@ -276,7 +269,7 @@ export async function reportToPdf(report: ReportDocument): Promise<Buffer> {
             }
             const visual = embeddedVisualPng(block, report.images);
             if (visual) {
-                const size = scaleDiagram(visual.width, visual.height, 490, isFormula(block) ? 64 : 600);
+                const size = scaleDiagram(visual.width, visual.height, 490, isFormula(block) ? 240 : 600);
                 if (document.y + size.height + 28 > 790)
                     document.addPage();
                 document
@@ -291,25 +284,6 @@ export async function reportToPdf(report: ReportDocument): Promise<Buffer> {
                 document.y = imageTop + size.height;
                 document.moveDown(0.45);
                 continue;
-            }
-            if (isFormula(block)) {
-                try {
-                    const formula = await renderFormulaPng(typeof block.metadata?.latex === "string"
-                        ? block.metadata.latex
-                        : blockToPlainText(block));
-                    const size = scaleDiagram(formula.width / 3, formula.height / 3, 490, 120);
-                    if (document.y + size.height + 32 > 790)
-                        document.addPage();
-                    document.fontSize(8).fillColor("#7568bd").text("CÔNG THỨC");
-                    document.moveDown(0.3);
-                    const top = document.y;
-                    document.image(formula.bytes, 52, top, size);
-                    document.y = top + size.height;
-                    document.moveDown(0.45);
-                    continue;
-                }
-                catch {
-                }
             }
             const content = markdownBlock(block)
                 .replace(/```[a-z]*\n?|```|\$\$\n?/g, "")
@@ -338,6 +312,7 @@ export async function reportToPdf(report: ReportDocument): Promise<Buffer> {
     return done;
 }
 export async function reportToDocx(report: ReportDocument): Promise<Buffer> {
+    assertReportImages(report);
     const children: Array<Paragraph | Table> = [
         new Paragraph({
             text: report.title || "Báo cáo học tập",
@@ -366,7 +341,7 @@ export async function reportToDocx(report: ReportDocument): Promise<Buffer> {
             }
             const visual = embeddedVisualPng(block, report.images);
             if (visual) {
-                const scaled = scaleDiagram(visual.width, visual.height, 520, isFormula(block) ? 64 : 600);
+                const scaled = scaleDiagram(visual.width, visual.height, 520, isFormula(block) ? 240 : 600);
                 children.push(new Paragraph({
                     text: block.contentType === "image" || block.type === "image"
                         ? "Hình ảnh"
@@ -383,30 +358,6 @@ export async function reportToDocx(report: ReportDocument): Promise<Buffer> {
                     ],
                 }));
                 continue;
-            }
-            if (isFormula(block)) {
-                try {
-                    const formula = await renderFormulaPng(typeof block.metadata?.latex === "string"
-                        ? block.metadata.latex
-                        : blockToPlainText(block));
-                    const scaled = scaleDiagram(formula.width / 2.25, formula.height / 2.25, 520, 160);
-                    children.push(new Paragraph({
-                        text: "Công thức",
-                        heading: HeadingLevel.HEADING_3,
-                    }));
-                    children.push(new Paragraph({
-                        children: [
-                            new ImageRun({
-                                data: formula.bytes,
-                                transformation: scaled,
-                                type: "png",
-                            }),
-                        ],
-                    }));
-                    continue;
-                }
-                catch {
-                }
             }
             children.push(new Paragraph({
                 text: blockLabel(block),

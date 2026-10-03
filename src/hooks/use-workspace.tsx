@@ -8,7 +8,6 @@ import { AppIcon } from "@/components/app-icon";
 import { INPUT_LIMITS, FILE_ACCEPT, supportedFile } from "@/lib/limits";
 import { quizSettings, type QuizSettings } from "@/lib/quiz-settings";
 import { resumableLoop, RequestFailure } from "@/lib/resumable-loop";
-import { renderMermaid } from "@/lib/mermaid-browser";
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState, useRef, useReducer, } from "react";
 import type { User } from "@supabase/supabase-js";
 import { type QuizQuestion, type QuizSubmission, } from "@/components/quiz-panel";
@@ -1026,56 +1025,6 @@ export function useWorkspace() {
         setBusy(true);
         setError("");
         try {
-            if (resultId && result) {
-                const diagrams = Array.from(new Set(result.sections
-                    .flatMap((section) => section.blocks)
-                    .filter((block) => block.contentType === "mermaid" ||
-                    block.type === "mermaid" ||
-                    (block.type === "diagram" &&
-                        !block.contentType &&
-                        typeof block.content === "string" &&
-                        /^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|mindmap|journey)\b/.test(block.content.trim())))
-                    .map((block) => typeof block.content === "string" ? block.content.trim() : "")
-                    .filter(Boolean)));
-                if (diagrams.length) {
-                    setLoadingLabel("Đang chuẩn bị ảnh sơ đồ cho báo cáo...");
-                    const { default: mermaid } = await import("mermaid");
-                    mermaid.initialize({
-                        startOnLoad: false,
-                        securityLevel: "strict",
-                        theme: "neutral",
-                        htmlLabels: false,
-                        flowchart: { htmlLabels: false },
-                        suppressErrorRendering: true,
-                    });
-                    let sourceOnly = 0;
-                    for (const [index, source] of diagrams.entries()) {
-                        try {
-                            if (source.length > 10000 ||
-                                !(await mermaid.parse(source, { suppressErrors: true }))) {
-                                sourceOnly++;
-                                continue;
-                            }
-                            const svg = await renderMermaid(source, `export-diagram-${Date.now()}-${index}`);
-                            await api(`/api/analyses/${analysisId}/assets`, {
-                                method: "POST",
-                                body: JSON.stringify({
-                                    resultId,
-                                    assetType: "mermaid",
-                                    source,
-                                    svg,
-                                    title: "Sơ đồ báo cáo",
-                                }),
-                            });
-                        }
-                        catch {
-                            sourceOnly++;
-                        }
-                    }
-                    if (sourceOnly)
-                        throw new Error(`${sourceOnly} sơ đồ chưa dựng được ảnh. Kiểm tra mã sơ đồ trong kết quả rồi thử lại; báo cáo chưa được xuất để tránh thiếu ảnh.`);
-                }
-            }
             setLoadingLabel("Đang tạo tệp báo cáo...");
             const response = await api<{
                 downloadUrl: string;

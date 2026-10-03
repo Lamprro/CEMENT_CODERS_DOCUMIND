@@ -584,8 +584,14 @@ export async function runAnalysis(identity: RequestIdentity, analysisId: string)
             throw new ApiError(500, "RESULT_SAVE_FAILED", "Không lưu được kết quả phân tích.", resultError.message);
         await persistAssets(analysisId, resultRow.id, resultJson.sections);
         const visualActivity = await startActivity(analysisId, "system", "Hệ thống dựng ảnh sơ đồ/công thức và lưu Supabase Storage");
-        const visuals = await prepareReportImages(analysisId, resultRow.id, resultJson, false);
-        await finishActivity(visualActivity, visuals.failures.length ? "failed" : "succeeded");
+        try {
+            await prepareReportImages(analysisId, resultRow.id, resultJson);
+            await finishActivity(visualActivity, "succeeded");
+        }
+        catch (error) {
+            await finishActivity(visualActivity, "failed");
+            throw error;
+        }
         if (claimed.quiz_enabled)
             await generateQuiz(analysisId, resultRow.id, itContext.topicId, itContext.specializationId, completed, quizSettings(claimed.quiz_settings));
         const { error: finishError } = await db

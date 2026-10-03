@@ -1,6 +1,7 @@
 import { svgToPng } from "@/lib/svg-raster";
 import { mathjax } from "mathjax-full/js/mathjax.js";
 import { TeX } from "mathjax-full/js/input/tex.js";
+import "mathjax-full/js/input/tex/ams/AmsConfiguration.js";
 import { SVG } from "mathjax-full/js/output/svg.js";
 import { liteAdaptor } from "mathjax-full/js/adaptors/liteAdaptor.js";
 import { RegisterHTMLHandler } from "mathjax-full/js/handlers/html.js";
@@ -13,8 +14,8 @@ const formulaCache = new Map<string, Promise<{
     height: number;
 }>>();
 export async function renderFormulaPng(latex: string) {
-    const source = latex.trim().replace(/^\$\$?|\$\$?$/g, "");
-    if (!source || source.length > 2000 || /[\u0000-\u001f]/.test(source))
+    const source = latex.trim().replace(/^(?:\$\$?|\\\[|\\\()\s*/, "").replace(/\s*(?:\$\$?|\\\]|\\\))$/, "");
+    if (!source || source.length > 2000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(source))
         throw new Error("Công thức LaTeX không hợp lệ để xuất ảnh.");
     const cached = formulaCache.get(source);
     if (cached)
@@ -34,7 +35,7 @@ export async function renderFormulaPng(latex: string) {
 async function render(source: string) {
     const rendered = adaptor.outerHTML(mathDocument.convert(source, { display: true }));
     if (rendered.includes('data-mml-node="merror"'))
-        throw new Error("Công thức LaTeX không hợp lệ; giữ mã nguồn thay vì xuất ảnh lỗi.");
+        throw new Error("Công thức LaTeX không hợp lệ để tạo ảnh.");
     const svgMatch = rendered.match(/<svg\b[\s\S]*?<\/svg>/);
     const boxMatch = svgMatch?.[0].match(/viewBox="[\d.-]+\s+[\d.-]+\s+([\d.]+)\s+([\d.]+)"/);
     if (!svgMatch || !boxMatch || /<\s*(script|foreignObject|image|a)\b|(?:href|src)\s*=/i.test(svgMatch[0]))
