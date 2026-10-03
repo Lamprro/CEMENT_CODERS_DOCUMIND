@@ -2,7 +2,7 @@
 
 DocuMind là không gian học tập từ tài liệu: đọc nội dung, kiểm tra bản trích xuất, phân tích bằng AI, tạo quiz, hỏi đáp theo nguồn và xuất báo cáo. Người dùng có thể làm việc với tư cách khách hoặc đăng nhập để quản lý lịch sử theo tài khoản.
 
-[Ứng dụng](https://cement-coders-documind.vercel.app/) · [Mã nguồn](https://github.com/Lamprro/CEMENT_CODERS_DOCUMIND)
+[Link Deploy sản phẩm](https://cement-coders-documind.vercel.app/) · [Mã nguồn](https://github.com/Lamprro/CEMENT_CODERS_DOCUMIND)
 
 ## Chức năng
 
