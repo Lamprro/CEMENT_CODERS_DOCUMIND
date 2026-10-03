@@ -27,5 +27,8 @@ if (existsSync(propertiesPath)) {
   }
 }
 
-const nextConfig = {};
+const nextConfig = {
+  serverExternalPackages: ["pdfkit", "@resvg/resvg-js"],
+  outputFileTracingIncludes: { "/api/**": ["./public/fonts/DocuMindSans.ttf"] },
+};
 export default nextConfig;
